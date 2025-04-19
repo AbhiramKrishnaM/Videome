@@ -4,7 +4,6 @@ node_modules/
 .pnp.js
 .pnpm-store/
 yarn.lock
-package-lock.json
 
 # Build outputs
 build/
