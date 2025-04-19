@@ -13,6 +13,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "declaration": true,
+    "composite": true,
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
