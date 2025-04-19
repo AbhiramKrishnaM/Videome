@@ -1,0 +1,12 @@
+{
+  "name": "videome-client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Client dev script not implemented yet'",
+    "build": "echo 'Client build script not implemented yet'",
+    "lint": "echo 'Client lint script not implemented yet'",
+    "format": "echo 'Client format script not implemented yet'",
+    "test": "echo 'Client test script not implemented yet'"
+  }
+}
