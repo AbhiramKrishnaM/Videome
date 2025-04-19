@@ -19,12 +19,16 @@ jobs:
         node-version: '18'
         cache: 'npm'
     
-    - name: Install dependencies
-      run: npm ci
+    - name: Install root dependencies
+      run: npm install
     
-    # Install additional dependencies for ESLint v9 in server directory
+    # Install additional dependencies for server
     - name: Install server dependencies
-      run: cd server && npm ci
+      run: cd server && npm install
+    
+    # Install dependencies for client
+    - name: Install client dependencies
+      run: cd client && npm install
     
     - name: Lint server
       run: npm run lint:server
@@ -52,7 +56,7 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm ci
+      run: npm install
     
     - name: Build server
       run: npm run build:server
