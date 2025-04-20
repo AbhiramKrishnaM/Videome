@@ -36,4 +36,9 @@ export interface ApiResponse<T> {
   success: boolean;
   count: number;
   data: T;
+  pagination?: {
+    next?: { page: number; limit: number };
+    prev?: { page: number; limit: number };
+  };
+  total?: number;
 }

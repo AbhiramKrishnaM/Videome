@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { useAuthStore } from '@/store/auth.store';
 import { User } from 'lucide-react';
+import { NotificationIcon } from '@/components/notifications/NotificationIcon';
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -39,6 +40,8 @@ export function Navbar() {
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
+              <NotificationIcon />
+
               <Link to="/profile" className="flex items-center gap-2">
                 <User className="h-5 w-5" />
                 <span className="hidden text-sm font-medium md:inline-block">{user?.name}</span>

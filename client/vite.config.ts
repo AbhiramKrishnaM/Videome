@@ -22,6 +22,11 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['@radix-ui/react-checkbox', '@radix-ui/react-scroll-area'],
+    include: [
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-scroll-area',
+      '@radix-ui/react-dropdown-menu',
+      'date-fns',
+    ],
   },
 });
