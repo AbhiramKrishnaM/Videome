@@ -1,7 +1,7 @@
 export type UserRole = 'admin' | 'user';
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: UserRole;
@@ -21,4 +21,10 @@ export interface RegisterData extends LoginCredentials {
 export interface AuthResponse {
   user: User;
   token: string;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  count: number;
+  data: T;
 }

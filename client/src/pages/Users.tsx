@@ -85,7 +85,7 @@ export default function Users() {
                 </tr>
               ) : (
                 filteredUsers.map((user: User) => (
-                  <tr key={user.id} className="border-b hover:bg-muted/40">
+                  <tr key={user._id} className="border-b hover:bg-muted/40">
                     <td className="p-3">{user.name}</td>
                     <td className="p-3">{user.email}</td>
                     <td className="p-3">
@@ -105,14 +105,14 @@ export default function Users() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => alert('Edit user: ' + user.id)}
+                          onClick={() => alert('Edit user: ' + user._id)}
                         >
                           Edit
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDelete(user.id)}
+                          onClick={() => handleDelete(user._id)}
                         >
                           Delete
                         </Button>

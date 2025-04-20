@@ -1,10 +1,10 @@
 import api from './api';
-import { AuthResponse, LoginCredentials, RegisterData, User } from '@/types/user';
+import { AuthResponse, LoginCredentials, RegisterData, User, ApiResponse } from '@/types/user';
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   try {
-    const response = await api.post<AuthResponse>('/auth/login', credentials);
-    const authResponse = response.data;
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
+    const authResponse = response.data.data;
 
     // Store token and user in localStorage
     localStorage.setItem('token', authResponse.token);
@@ -19,8 +19,8 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
 
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
   try {
-    const response = await api.post<AuthResponse>('/auth/register', data);
-    const authResponse = response.data;
+    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', data);
+    const authResponse = response.data.data;
 
     // Store token and user in localStorage
     localStorage.setItem('token', authResponse.token);

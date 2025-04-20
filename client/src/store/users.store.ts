@@ -51,7 +51,7 @@ export const useUsersStore = create<UsersState>()((set, get) => ({
       const updatedUser = await usersService.updateUser(id, userData);
 
       // Update users list
-      const users = get().users.map((user) => (user.id === id ? updatedUser : user));
+      const users = get().users.map((user) => (user._id === id ? updatedUser : user));
 
       set({
         users,
@@ -70,11 +70,11 @@ export const useUsersStore = create<UsersState>()((set, get) => ({
       await usersService.deleteUser(id);
 
       // Remove user from list
-      const users = get().users.filter((user) => user.id !== id);
+      const users = get().users.filter((user) => user._id !== id);
 
       set({
         users,
-        selectedUser: get().selectedUser?.id === id ? null : get().selectedUser,
+        selectedUser: get().selectedUser?._id === id ? null : get().selectedUser,
         isLoading: false,
       });
     } catch (error) {
