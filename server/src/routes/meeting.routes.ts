@@ -11,7 +11,11 @@ import { Router } from 'express';
 
 const router = Router();
 
-// Use protect middleware for all routes
+// Join meeting route (does not require auth)
+// Must be defined before the protect middleware
+router.post('/join/:id', joinMeeting);
+
+// Use protect middleware for all other routes
 router.use(protect);
 
 // Get all meetings for the user
@@ -28,8 +32,5 @@ router.put('/:id', updateMeeting);
 
 // Delete meeting
 router.delete('/:id', deleteMeeting);
-
-// Join meeting (no auth required)
-router.post('/join/:id', joinMeeting);
 
 export default router;

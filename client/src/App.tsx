@@ -6,6 +6,7 @@ import Home from '@/pages/Home';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
 import Users from '@/pages/Users';
+import Meeting from '@/pages/Meeting';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 function App() {
@@ -22,6 +23,14 @@ function App() {
             element={
               <ProtectedRoute adminOnly>
                 <Users />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="meeting/:id"
+            element={
+              <ProtectedRoute>
+                <Meeting />
               </ProtectedRoute>
             }
           />
