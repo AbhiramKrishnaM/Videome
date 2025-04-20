@@ -4,7 +4,7 @@ services:
   # MongoDB service
   mongodb:
     image: mongo:latest
-    container_name: videome-mongodb
+    container_name: videome-mongodb-dev
     restart: always
     ports:
       - "27017:27017"
@@ -14,14 +14,13 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-root}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-password}
     networks:
-      - videome-network
+      - videome-network-dev
 
-  # Backend service
+  # Backend service for development (with hot reload)
   server:
-    build:
-      context: .
-      dockerfile: Dockerfile.server
-    container_name: videome-server
+    image: node:18-alpine
+    container_name: videome-server-dev
+    working_dir: /app
     restart: always
     ports:
       - "5000:5000"
@@ -35,34 +34,36 @@ services:
       - JWT_EXPIRE=${JWT_EXPIRE:-30d}
     volumes:
       - ./server:/app
-      - /app/node_modules
+      - server_node_modules:/app/node_modules
     networks:
-      - videome-network
-    command: npm run dev
+      - videome-network-dev
+    command: sh -c "npm install && npm run dev"
 
-  # Frontend service
+  # Frontend service for development (with hot reload)
   client:
-    build:
-      context: .
-      dockerfile: Dockerfile.client
-    container_name: videome-client
+    image: node:18-alpine
+    container_name: videome-client-dev
+    working_dir: /app
     restart: always
     ports:
-      - "3000:80"
+      - "3000:3000"
     volumes:
       - ./client:/app
-      - /app/node_modules
+      - client_node_modules:/app/node_modules
     depends_on:
       - server
     networks:
-      - videome-network
+      - videome-network-dev
     environment:
       - VITE_API_URL=http://localhost:5000/api/v1
+    command: sh -c "npm install && npm run dev"
 
 volumes:
   mongodb_data:
     driver: local
+  server_node_modules:
+  client_node_modules:
 
 networks:
-  videome-network:
-    driver: bridge
+  videome-network-dev:
+    driver: bridge 
