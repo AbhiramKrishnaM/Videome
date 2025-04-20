@@ -17,16 +17,41 @@ export const register = async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: errors.array(),
+      });
       return;
     }
 
     const { name, email, password } = req.body;
 
+    // Check for missing required fields
+    if (!name || !email || !password) {
+      res.status(400).json({
+        success: false,
+        message: 'Please provide name, email and password',
+      });
+      return;
+    }
+
     // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
-      res.status(400).json({ message: 'User already exists' });
+      res.status(409).json({
+        success: false,
+        message: 'Email is already registered',
+      });
+      return;
+    }
+
+    // Validate password length
+    if (password.length < 6) {
+      res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long',
+      });
       return;
     }
 
@@ -48,11 +73,15 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
     logger.error(`Error in register: ${error}`);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Registration failed. Please try again later.',
+    });
   }
 };
 
@@ -65,23 +94,42 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      res.status(400).json({ errors: errors.array() });
+      res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: errors.array(),
+      });
       return;
     }
 
     const { email, password } = req.body;
 
+    // Check for missing fields
+    if (!email || !password) {
+      res.status(400).json({
+        success: false,
+        message: 'Please provide email and password',
+      });
+      return;
+    }
+
     // Check if user exists
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
-      res.status(401).json({ message: 'Invalid credentials' });
+      res.status(401).json({
+        success: false,
+        message: 'No account found with this email address',
+      });
       return;
     }
 
     // Check if password matches
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      res.status(401).json({ message: 'Invalid credentials' });
+      res.status(401).json({
+        success: false,
+        message: 'Incorrect password',
+      });
       return;
     }
 
@@ -96,11 +144,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
     logger.error(`Error in login: ${error}`);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Login failed. Please try again later.',
+    });
   }
 };
 
@@ -113,18 +165,30 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const user = req.user;
 
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+      return;
+    }
+
     res.status(200).json({
       success: true,
       user: {
-        id: user?._id,
-        name: user?.name,
-        email: user?.email,
-        role: user?.role,
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
     logger.error(`Error in getMe: ${error}`);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve user information',
+    });
   }
 };
 
@@ -134,5 +198,8 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
  * @access  Private
  */
 export const logout = (_req: Request, res: Response): void => {
-  res.status(200).json({ success: true, message: 'Logged out successfully' });
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully',
+  });
 };
