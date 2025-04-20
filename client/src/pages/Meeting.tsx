@@ -23,21 +23,13 @@ interface MeetingWithUsers {
   updatedAt: string;
 }
 
-interface User {
-  _id: string;
-  name: string;
-  email: string;
-  id?: string;
-}
-
 type Socket = any; // Use any for Socket type to avoid importing socket.io types
 
 export default function Meeting() {
   const { id } = useParams<{ id: string }>();
   const { user, token } = useAuthStore();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { getMeeting, currentMeeting, isLoading, error, clearError } = useMeetingStore();
+  const { clearError } = useMeetingStore();
 
   // Meeting state
   const [meeting, setMeeting] = useState<any | null>(null);
