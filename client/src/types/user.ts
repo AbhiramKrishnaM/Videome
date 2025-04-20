@@ -24,7 +24,7 @@ export interface LoginCredentials {
 
 export interface RegisterData extends LoginCredentials {
   name: string;
-  organizationName?: string;
+  organization?: string;
 }
 
 export interface AuthResponse {

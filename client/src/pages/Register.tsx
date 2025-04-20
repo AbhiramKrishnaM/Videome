@@ -1,26 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthStore } from '@/store/auth.store';
+import { getPublicOrganizations, Organization } from '@/services/organization.service';
 
 export default function Register() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { register, error, isLoading } = useAuthStore();
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [isLoadingOrgs, setIsLoadingOrgs] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    organizationName: '',
+    organization: '',
   });
+
+  // Fetch organizations when component mounts
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const fetchOrganizations = async () => {
+      setIsLoadingOrgs(true);
+      try {
+        const orgs = await getPublicOrganizations();
+        setOrganizations(orgs);
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to load organizations. Please try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoadingOrgs(false);
+      }
+    };
+
+    fetchOrganizations();
+  }, []); // Empty dependency array to run only once
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleOrganizationChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, organization: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,22 +124,30 @@ export default function Register() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="organizationName">Organization Name</Label>
-              <Input
-                id="organizationName"
-                name="organizationName"
-                type="text"
-                placeholder="Your Company"
-                value={formData.organizationName}
-                onChange={handleChange}
-              />
+              <Label htmlFor="organization">Organization</Label>
+              <Select
+                value={formData.organization}
+                onValueChange={handleOrganizationChange}
+                disabled={isLoadingOrgs}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select an organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  {organizations.map((org) => (
+                    <SelectItem key={org._id} value={org._id}>
+                      {org.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
-                Enter your organization name. If it already exists, you'll be added to it.
+                Select your organization. You'll be added as a member once approved.
               </p>
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading || isLoadingOrgs}>
             {isLoading ? 'Creating account...' : 'Create Account'}
           </Button>
         </form>

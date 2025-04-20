@@ -26,7 +26,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { name, email, password, organizationName } = req.body;
+    const { name, email, password, organization, organizationName } = req.body;
 
     // Check for missing required fields
     if (!name || !email || !password) {
@@ -58,20 +58,35 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     // Handle organization
     let organizationId = null;
-    if (organizationName) {
+
+    // Check if organization ID was provided (from dropdown)
+    if (organization) {
+      // Verify that the organization exists
+      const Organization = mongoose.model('Organization');
+      const existingOrg = await Organization.findById(organization);
+
+      if (existingOrg) {
+        organizationId = existingOrg._id;
+        logger.info(`User assigned to existing organization: ${existingOrg.name}`);
+      } else {
+        logger.warn(`Organization ID ${organization} not found`);
+      }
+    }
+    // For backward compatibility, also check organizationName
+    else if (organizationName) {
       // Check if organization already exists
       const Organization = mongoose.model('Organization');
-      let organization = await Organization.findOne({ name: organizationName });
+      let foundOrg = await Organization.findOne({ name: organizationName });
 
-      if (!organization) {
+      if (!foundOrg) {
         // Create new organization
-        organization = await Organization.create({
+        foundOrg = await Organization.create({
           name: organizationName,
         });
         logger.info(`Created new organization: ${organizationName}`);
       }
 
-      organizationId = organization._id;
+      organizationId = foundOrg._id;
     }
 
     // Create user
