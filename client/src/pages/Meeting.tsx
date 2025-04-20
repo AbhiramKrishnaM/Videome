@@ -9,9 +9,10 @@ import { CameraTest } from '@/components/meeting/CameraTest';
 import { Mic, MicOff, Video, VideoOff, ScreenShare, PhoneOff, Bug } from 'lucide-react';
 import * as webrtcService from '@/services/webrtc.service';
 import * as socketService from '@/services/socket.service';
-import { LocalStream, RemoteStream } from '@/services/webrtc.service';
+import { LocalStream, RemoteStream, getUserMedia } from '@/services/webrtc.service';
 import { SocketEvents } from '@/services/socket.service';
 import { cn } from '@/lib/utils';
+import { Meeting as IMeeting } from '@/types/meeting';
 
 // Define the types we need
 interface MeetingWithUsers {
@@ -38,6 +39,7 @@ export default function Meeting() {
   const { user, token } = useAuthStore();
   const navigate = useNavigate();
   const { clearError } = useMeetingStore();
+  const { toast } = useToast();
 
   // Meeting state
   const [meeting, setMeeting] = useState<any | null>(null);
@@ -50,6 +52,7 @@ export default function Meeting() {
   const [isAudioEnabled, setIsAudioEnabled] = useState<boolean>(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState<boolean>(true);
   const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
+  const [isCameraOn, setIsCameraOn] = useState<boolean>(true);
 
   // Debug mode
   const [isDebugMode, setIsDebugMode] = useState(false);
@@ -404,6 +407,69 @@ export default function Meeting() {
   // Toggle debug mode
   const toggleDebugMode = () => {
     setIsDebugMode(!isDebugMode);
+  };
+
+  const toggleCamera = async () => {
+    try {
+      setIsLoading(true);
+
+      // Toggle the camera state
+      const newCameraState = !isCameraOn;
+      setIsCameraOn(newCameraState);
+
+      if (localStream) {
+        // If turning off, just disable existing tracks
+        if (!newCameraState) {
+          webrtcService.toggleVideoTrack(localStream, false);
+        } else {
+          // If turning on, first check if we need to re-acquire the camera
+          const videoTracks = localStream.getVideoTracks();
+
+          if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
+            // We need to re-acquire the camera
+            console.log('Re-acquiring camera...');
+            // Get only video, keep audio state as is
+            const hasAudio = localStream.getAudioTracks().some((track) => track.enabled);
+
+            const newStream = await webrtcService.getUserMedia({
+              video: true,
+              audio: hasAudio,
+            });
+
+            // Replace the stream
+            setLocalStream(newStream);
+
+            // Update all peer connections with the new stream
+            peerConnectionsRef.current.forEach((pc) => {
+              webrtcService.addLocalStreamToPeerConnection(pc, newStream);
+            });
+          } else {
+            // Just enable existing tracks
+            webrtcService.toggleVideoTrack(localStream, true);
+          }
+        }
+      } else {
+        // If no stream exists at all, get a new one
+        const newStream = await webrtcService.getLocalStream(newCameraState, isAudioEnabled);
+        setLocalStream(newStream);
+
+        // Update all peer connections with the new stream
+        peerConnectionsRef.current.forEach((pc) => {
+          webrtcService.addLocalStreamToPeerConnection(pc, newStream);
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling camera:', error);
+      toast({
+        title: 'Camera Error',
+        description: 'Could not toggle camera. Please check permissions.',
+        variant: 'destructive',
+      });
+      // Revert the camera state since we failed
+      setIsCameraOn(isCameraOn);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (localLoading) {

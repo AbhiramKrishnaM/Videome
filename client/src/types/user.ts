@@ -1,4 +1,11 @@
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'user' | 'org_admin' | 'super_admin';
+
+export interface Organization {
+  _id: string;
+  name: string;
+  description?: string;
+  logo?: string;
+}
 
 export interface User {
   _id: string;
@@ -6,6 +13,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatar?: string;
+  organization?: Organization;
   createdAt: string;
 }
 
@@ -16,6 +24,7 @@ export interface LoginCredentials {
 
 export interface RegisterData extends LoginCredentials {
   name: string;
+  organizationName?: string;
 }
 
 export interface AuthResponse {

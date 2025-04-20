@@ -1,16 +1,24 @@
 import api from './api';
-import { AuthResponse, LoginCredentials, RegisterData, User, ApiResponse } from '@/types/user';
+import { AuthResponse, LoginCredentials, RegisterData, User } from '@/types/user';
 
 export const login = async (credentials: LoginCredentials): Promise<AuthResponse> => {
   try {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
-    const authResponse = response.data.data;
+    const response = await api.post<{ success: boolean; token: string; user: User }>(
+      '/auth/login',
+      credentials,
+    );
+
+    if (!response.data.success) {
+      throw new Error('Login failed');
+    }
+
+    const { token, user } = response.data;
 
     // Store token and user in localStorage
-    localStorage.setItem('token', authResponse.token);
-    localStorage.setItem('user', JSON.stringify(authResponse.user));
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
 
-    return authResponse;
+    return { token, user };
   } catch (error) {
     console.error('Login error:', error);
     throw error;
@@ -19,14 +27,22 @@ export const login = async (credentials: LoginCredentials): Promise<AuthResponse
 
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
   try {
-    const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', data);
-    const authResponse = response.data.data;
+    const response = await api.post<{ success: boolean; token: string; user: User }>(
+      '/auth/register',
+      data,
+    );
+
+    if (!response.data.success) {
+      throw new Error('Registration failed');
+    }
+
+    const { token, user } = response.data;
 
     // Store token and user in localStorage
-    localStorage.setItem('token', authResponse.token);
-    localStorage.setItem('user', JSON.stringify(authResponse.user));
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
 
-    return authResponse;
+    return { token, user };
   } catch (error) {
     console.error('Register error:', error);
     throw error;
@@ -67,5 +83,20 @@ export const isAuthenticated = (): boolean => {
 
 export const isAdmin = (): boolean => {
   const user = getStoredUser();
-  return !!user && user.role === 'admin';
+  return !!user && (user.role === 'super_admin' || user.role === 'org_admin');
+};
+
+export const isSuperAdmin = (): boolean => {
+  const user = getStoredUser();
+  return !!user && user.role === 'super_admin';
+};
+
+export const isOrgAdmin = (): boolean => {
+  const user = getStoredUser();
+  return !!user && user.role === 'org_admin';
+};
+
+export const getUserOrganization = (): string | null => {
+  const user = getStoredUser();
+  return user?.organization?._id || null;
 };

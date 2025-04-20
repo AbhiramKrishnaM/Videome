@@ -4,12 +4,31 @@ import { Meeting } from '@/types/meeting';
 export type LocalStream = MediaStream;
 export type RemoteStream = MediaStream;
 
+// Define media constraints type for better type checking
+export interface MediaConstraints {
+  video: boolean | MediaTrackConstraints;
+  audio: boolean | MediaTrackConstraints;
+}
+
 // Store active connections
 const peerConnections: Record<string, RTCPeerConnection> = {};
 
 // Configuration for STUN/TURN servers
 const rtcConfig: RTCConfiguration = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }],
+};
+
+/**
+ * Get user media with specified constraints
+ */
+export const getUserMedia = async (constraints: MediaConstraints): Promise<LocalStream> => {
+  try {
+    console.log('Requesting media access with constraints:', constraints);
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  } catch (error) {
+    console.error('Error accessing media devices:', error);
+    throw error;
+  }
 };
 
 /**
@@ -45,7 +64,7 @@ export const getLocalStream = async (video = true, audio = true): Promise<LocalS
     }
 
     // Request the stream
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    const stream = await getUserMedia(constraints);
 
     // Log information about the stream
     console.log('Media stream obtained:', {
@@ -103,9 +122,31 @@ export const getScreenShareStream = async (): Promise<LocalStream> => {
  * Toggle video track in a stream
  */
 export const toggleVideoTrack = (stream: LocalStream, enabled: boolean): void => {
-  stream.getVideoTracks().forEach((track) => {
+  const videoTracks = stream.getVideoTracks();
+  videoTracks.forEach((track) => {
     track.enabled = enabled;
+
+    // If disabling video, also stop the track to turn off camera light
+    if (!enabled) {
+      // Clone the current stream without video tracks for internal reference
+      const audioOnlyStream = new MediaStream();
+      stream.getAudioTracks().forEach((audioTrack) => {
+        audioOnlyStream.addTrack(audioTrack);
+      });
+
+      // Stop the video track to turn off camera light
+      track.stop();
+
+      console.log('Video track stopped:', track.label);
+    }
   });
+
+  // If we're enabling video and there are no video tracks (previously stopped),
+  // we'll need to get a new stream with video
+  if (enabled && videoTracks.length === 0) {
+    console.log('Re-acquiring video track after previous stop');
+    // This will be handled by the parent component by getting a new local stream
+  }
 };
 
 /**

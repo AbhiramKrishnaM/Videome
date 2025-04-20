@@ -15,6 +15,7 @@ export default function Register() {
     name: '',
     email: '',
     password: '',
+    organizationName: '',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +86,20 @@ export default function Register() {
                 onChange={handleChange}
                 minLength={8}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="organizationName">Organization Name</Label>
+              <Input
+                id="organizationName"
+                name="organizationName"
+                type="text"
+                placeholder="Your Company"
+                value={formData.organizationName}
+                onChange={handleChange}
+              />
+              <p className="text-xs text-muted-foreground">
+                Enter your organization name. If it already exists, you'll be added to it.
+              </p>
             </div>
           </div>
 

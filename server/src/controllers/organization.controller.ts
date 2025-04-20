@@ -49,7 +49,8 @@ export const getOrganization = async (req: AuthRequest, res: Response): Promise<
     }
 
     // Check if user is a super_admin or belongs to this organization
-    const userBelongsToOrg = req.user?.organization?.toString() === organization._id.toString();
+    const userBelongsToOrg =
+      req.user?.organization?.toString() === (organization._id as any).toString();
     if (req.user?.role !== 'super_admin' && !userBelongsToOrg) {
       res.status(403).json({ message: 'Not authorized to access this organization' });
       return;
@@ -114,7 +115,7 @@ export const updateOrganization = async (req: AuthRequest, res: Response): Promi
     // Check if user is authorized to update this organization
     const isOrgAdmin =
       req.user?.role === 'org_admin' &&
-      req.user?.organization?.toString() === organization._id.toString();
+      req.user?.organization?.toString() === (organization._id as any).toString();
     if (req.user?.role !== 'super_admin' && !isOrgAdmin) {
       res.status(403).json({ message: 'Not authorized to update this organization' });
       return;
@@ -202,7 +203,7 @@ export const getOrganizationUsers = async (req: AuthRequest, res: Response): Pro
     // Check if user is authorized to view organization users
     const isOrgAdmin =
       req.user?.role === 'org_admin' &&
-      req.user?.organization?.toString() === organization._id.toString();
+      req.user?.organization?.toString() === (organization._id as any).toString();
     const isSuperAdmin = req.user?.role === 'super_admin';
 
     if (!isOrgAdmin && !isSuperAdmin) {

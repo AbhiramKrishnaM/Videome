@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import User, { IUser } from '@/models/User';
 import logger from '@/utils/logger';
+import mongoose from 'mongoose';
 
 // Extended request interface
 interface AuthRequest extends Request {
@@ -25,7 +26,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const { name, email, password } = req.body;
+    const { name, email, password, organizationName } = req.body;
 
     // Check for missing required fields
     if (!name || !email || !password) {
@@ -55,11 +56,30 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Handle organization
+    let organizationId = null;
+    if (organizationName) {
+      // Check if organization already exists
+      const Organization = mongoose.model('Organization');
+      let organization = await Organization.findOne({ name: organizationName });
+
+      if (!organization) {
+        // Create new organization
+        organization = await Organization.create({
+          name: organizationName,
+        });
+        logger.info(`Created new organization: ${organizationName}`);
+      }
+
+      organizationId = organization._id;
+    }
+
     // Create user
     const user = await User.create({
       name,
       email,
       password,
+      organization: organizationId,
     });
 
     // Generate token
@@ -73,6 +93,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        organization: organizationId,
         createdAt: user.createdAt,
       },
     });
@@ -113,8 +134,11 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check if user exists
-    const user = await User.findOne({ email }).select('+password');
+    // Check if user exists with organization info
+    const user = await User.findOne({ email })
+      .select('+password')
+      .populate('organization', 'name description logo');
+
     if (!user) {
       res.status(401).json({
         success: false,
@@ -133,6 +157,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    // Update last login time
+    user.lastLogin = new Date();
+    await user.save();
+
     // Generate token
     const token = user.getSignedJwtToken();
 
@@ -144,6 +172,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        organization: user.organization,
         createdAt: user.createdAt,
       },
     });
@@ -163,7 +192,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
  */
 export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const user = req.user;
+    // Get user with organization details
+    const userId = req.user?._id;
+    const user = await User.findById(userId).populate('organization', 'name description logo');
 
     if (!user) {
       res.status(404).json({
@@ -180,6 +211,7 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
         name: user.name,
         email: user.email,
         role: user.role,
+        organization: user.organization,
         createdAt: user.createdAt,
       },
     });
