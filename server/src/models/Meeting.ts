@@ -90,14 +90,13 @@ const MeetingSchema: Schema = new Schema(
       type: String,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Indexes
 MeetingSchema.index({ host: 1 });
-MeetingSchema.index({ meetingCode: 1 });
 MeetingSchema.index({ startTime: 1 });
 
 const Meeting: Model<IMeeting> = mongoose.model<IMeeting>('Meeting', MeetingSchema);
 
-export default Meeting; 
+export default Meeting;
