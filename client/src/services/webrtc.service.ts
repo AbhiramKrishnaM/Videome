@@ -123,29 +123,30 @@ export const getScreenShareStream = async (): Promise<LocalStream> => {
  */
 export const toggleVideoTrack = (stream: LocalStream, enabled: boolean): void => {
   const videoTracks = stream.getVideoTracks();
-  videoTracks.forEach((track) => {
-    track.enabled = enabled;
 
-    // If disabling video, also stop the track to turn off camera light
-    if (!enabled) {
-      // Clone the current stream without video tracks for internal reference
-      const audioOnlyStream = new MediaStream();
-      stream.getAudioTracks().forEach((audioTrack) => {
-        audioOnlyStream.addTrack(audioTrack);
+  if (enabled) {
+    // If we're enabling video and there are existing tracks, just enable them
+    if (videoTracks.length > 0) {
+      videoTracks.forEach((track) => {
+        track.enabled = true;
       });
-
-      // Stop the video track to turn off camera light
-      track.stop();
-
-      console.log('Video track stopped:', track.label);
+      console.log('Enabled existing video tracks');
+      return;
     }
-  });
 
-  // If we're enabling video and there are no video tracks (previously stopped),
-  // we'll need to get a new stream with video
-  if (enabled && videoTracks.length === 0) {
-    console.log('Re-acquiring video track after previous stop');
-    // This will be handled by the parent component by getting a new local stream
+    // If there are no video tracks, this will be handled by the caller
+    // by re-acquiring the camera
+    console.log('No video tracks to enable, need to re-acquire camera');
+    return;
+  } else {
+    // Disabling video
+    videoTracks.forEach((track) => {
+      // First disable the track
+      track.enabled = false;
+      // Then stop it to turn off the camera light
+      track.stop();
+      console.log('Video track stopped:', track.label);
+    });
   }
 };
 

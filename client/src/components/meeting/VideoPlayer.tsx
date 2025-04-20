@@ -134,17 +134,35 @@ export function VideoPlayer({
 
       {isNoVideo && (
         <div className="flex h-full w-full items-center justify-center bg-gray-800">
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl text-white">
-              {username.charAt(0).toUpperCase()}
+          <div className="relative flex flex-col items-center gap-2">
+            <div className="relative">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-xl text-white">
+                {username.charAt(0).toUpperCase()}
+              </div>
+              {/* Position audio visualizer around the avatar circle when video is off */}
+              {!isMuted && isAudioEnabled && (
+                <AudioVisualizer
+                  stream={stream}
+                  isActive={!isMuted && isAudioEnabled && (isSpeaking || true)}
+                  size="large"
+                  style="avatar"
+                />
+              )}
             </div>
             {videoError && <p className="text-xs text-red-400">{videoError}</p>}
           </div>
         </div>
       )}
 
-      {/* Show audio visualizer when user is speaking and audio is enabled */}
-      <AudioVisualizer stream={stream} isActive={!isMuted && isAudioEnabled && isSpeaking} />
+      {/* Show audio visualizer only when video is on */}
+      {!isNoVideo && !isMuted && isAudioEnabled && (
+        <AudioVisualizer
+          stream={stream}
+          isActive={!isMuted && isAudioEnabled && isSpeaking}
+          size="small"
+          style="bottom"
+        />
+      )}
 
       <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent p-3 text-white">
         <div className="flex items-center gap-2">

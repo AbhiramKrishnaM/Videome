@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { useUsersStore } from '@/store/users.store';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/types/user';
+import { Badge } from '@/components/ui/badge';
 
 export default function Users() {
   const { users, fetchUsers, deleteUser, isLoading, error } = useUsersStore();
@@ -17,7 +18,8 @@ export default function Users() {
   const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.organization?.name || '').toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleDelete = async (userId: string) => {
@@ -38,6 +40,19 @@ export default function Users() {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'super_admin':
+        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      case 'org_admin':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      case 'admin':
+        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      default:
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+  };
+
   return (
     <div className="container py-8">
       <div className="mb-8 space-y-2">
@@ -51,7 +66,7 @@ export default function Users() {
 
       <div className="mb-6">
         <Input
-          placeholder="Search users..."
+          placeholder="Search users by name, email, or organization..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="max-w-sm"
@@ -65,6 +80,7 @@ export default function Users() {
               <tr className="border-b bg-muted/40">
                 <th className="p-3 text-left font-medium">Name</th>
                 <th className="p-3 text-left font-medium">Email</th>
+                <th className="p-3 text-left font-medium">Organization</th>
                 <th className="p-3 text-left font-medium">Role</th>
                 <th className="p-3 text-left font-medium">Joined On</th>
                 <th className="p-3 text-left font-medium">Actions</th>
@@ -73,31 +89,39 @@ export default function Users() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="p-4 text-center">
+                  <td colSpan={6} className="p-4 text-center">
                     Loading users...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-4 text-center">
+                  <td colSpan={6} className="p-4 text-center">
                     No users found
                   </td>
                 </tr>
               ) : (
                 filteredUsers.map((user: User) => (
                   <tr key={user._id} className="border-b hover:bg-muted/40">
-                    <td className="p-3">{user.name}</td>
+                    <td className="p-3 font-medium">{user.name}</td>
                     <td className="p-3">{user.email}</td>
                     <td className="p-3">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs ${
-                          user.role === 'admin'
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {user.role}
-                      </span>
+                      {user.organization ? (
+                        <div className="flex items-center gap-2">
+                          {user.organization.logo && (
+                            <img
+                              src={user.organization.logo}
+                              alt={user.organization.name}
+                              className="h-5 w-5 rounded-full"
+                            />
+                          )}
+                          <span>{user.organization.name}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">None</span>
+                      )}
+                    </td>
+                    <td className="p-3">
+                      <Badge className={getRoleBadgeColor(user.role)}>{user.role}</Badge>
                     </td>
                     <td className="p-3">{formatDate(user.createdAt)}</td>
                     <td className="p-3">

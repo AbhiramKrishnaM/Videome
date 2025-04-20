@@ -3,9 +3,16 @@ import { useEffect, useRef, useState } from 'react';
 interface AudioVisualizerProps {
   stream: MediaStream | null;
   isActive: boolean;
+  size?: 'small' | 'medium' | 'large';
+  style?: 'bottom' | 'avatar';
 }
 
-export function AudioVisualizer({ stream, isActive }: AudioVisualizerProps) {
+export function AudioVisualizer({
+  stream,
+  isActive,
+  size = 'small',
+  style = 'bottom',
+}: AudioVisualizerProps) {
   const [audioLevel, setAudioLevel] = useState<number>(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -126,12 +133,57 @@ export function AudioVisualizer({ stream, isActive }: AudioVisualizerProps) {
     };
   }, [stream, isActive, audioLevel]);
 
-  // No need to show anything if inactive or no audio detected
+  // No need to show anything if inactive
   if (!isActive) return null;
 
+  // Different visualizer styles
+  if (style === 'avatar') {
+    // Size values for the avatar circle style
+    const circleSize = size === 'large' ? 22 : size === 'medium' ? 18 : 14;
+    const barWidth = size === 'large' ? 3 : size === 'medium' ? 2 : 1;
+    const barCount = 12; // Number of bars around the circle
+
+    return (
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="absolute" style={{ width: '120px', height: '120px' }}>
+          {/* Generate circular bars around the avatar */}
+          {[...Array(barCount)].map((_, i) => {
+            const angle = (i / barCount) * 2 * Math.PI;
+            const baseHeight = audioLevel > 5 ? (audioLevel / 100) * circleSize : 2;
+            // Dynamic height based on audio level and position
+            const height = Math.max(
+              2,
+              baseHeight + Math.sin(Date.now() / 500 + i) * (baseHeight / 2),
+            );
+
+            // Calculate position around the circle (22px radius + height variation)
+            const radius = 24 + height;
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+
+            return (
+              <div
+                key={i}
+                className="absolute bg-green-500 rounded-full"
+                style={{
+                  width: `${barWidth}px`,
+                  height: `${height}px`,
+                  opacity: 0.7,
+                  transform: `translate(${60 + x}px, ${60 + y}px) rotate(${angle + Math.PI / 2}rad)`,
+                  transition: 'height 0.1s ease-in-out',
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Default bottom style
   return (
-    <div className="absolute bottom-8 left-0 right-0 flex h-6 justify-center overflow-hidden">
-      <div className="flex items-end space-x-1 px-2">
+    <div className="absolute bottom-0 left-0 right-0 flex h-6 justify-center">
+      <div className={`flex items-end space-x-1 px-2 ${audioLevel > 10 ? 'animate-pulse' : ''}`}>
         {/* Generate 5 wave bars with height based on audio level */}
         {[...Array(5)].map((_, i) => {
           // Calculate height for each bar to create wave effect

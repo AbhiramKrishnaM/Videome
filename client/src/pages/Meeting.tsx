@@ -279,13 +279,59 @@ export default function Meeting() {
   }, [isAudioEnabled]);
 
   // Toggle video
-  const toggleVideo = useCallback(() => {
-    if (localStreamRef.current) {
-      const newState = !isVideoEnabled;
-      webrtcService.toggleVideoTrack(localStreamRef.current, newState);
-      setIsVideoEnabled(newState);
+  const toggleVideo = async () => {
+    try {
+      const newVideoState = !isVideoEnabled;
+      setIsVideoEnabled(newVideoState);
+
+      if (localStream) {
+        if (!newVideoState) {
+          // Simply disable video tracks
+          webrtcService.toggleVideoTrack(localStream, false);
+        } else {
+          // If turning on, first check if we need to re-acquire the camera
+          const videoTracks = localStream.getVideoTracks();
+
+          if (videoTracks.length === 0 || videoTracks[0].readyState === 'ended') {
+            // Need to re-acquire camera
+            console.log('Re-acquiring camera for video toggle...');
+            const hasAudio = localStream.getAudioTracks().some((track) => track.enabled);
+
+            const newStream = await webrtcService.getUserMedia({
+              video: true,
+              audio: hasAudio,
+            });
+
+            // Replace the stream
+            setLocalStream(newStream);
+            localStreamRef.current = newStream;
+
+            // Update all peer connections with the new stream
+            peerConnectionsRef.current.forEach((pc) => {
+              webrtcService.addLocalStreamToPeerConnection(pc, newStream);
+            });
+          } else {
+            // Just enable existing tracks
+            webrtcService.toggleVideoTrack(localStream, true);
+          }
+        }
+      } else {
+        // No stream exists, get a new one
+        const newStream = await webrtcService.getLocalStream(true, isAudioEnabled);
+        setLocalStream(newStream);
+        localStreamRef.current = newStream;
+      }
+    } catch (error) {
+      console.error('Error toggling video:', error);
+      toast({
+        title: 'Video Error',
+        description: 'Could not toggle video. Please check permissions.',
+        variant: 'destructive',
+      });
+      // Revert the video state
+      setIsVideoEnabled(isVideoEnabled);
     }
-  }, [isVideoEnabled]);
+  };
 
   // Toggle screen sharing
   const toggleScreenSharing = useCallback(async () => {
@@ -471,6 +517,38 @@ export default function Meeting() {
       setIsLoading(false);
     }
   };
+
+  // Clean up when leaving meeting
+  useEffect(() => {
+    // Return function that gets called when component unmounts
+    return () => {
+      console.log('Cleaning up meeting resources...');
+
+      // Stop all tracks in local stream
+      if (localStream) {
+        localStream.getTracks().forEach((track) => {
+          track.stop();
+        });
+      }
+
+      // Stop all remote tracks
+      remoteStreams.forEach((stream) => {
+        stream.getTracks().forEach((track) => {
+          track.stop();
+        });
+      });
+
+      // Close all peer connections
+      peerConnectionsRef.current.forEach((pc) => {
+        pc.close();
+      });
+
+      // Disconnect socket
+      socketService.disconnectSocket();
+
+      console.log('Meeting cleanup complete');
+    };
+  }, []);
 
   if (localLoading) {
     return (
