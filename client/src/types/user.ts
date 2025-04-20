@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'org_admin' | 'super_admin';
+export type UserRole = 'user' | 'admin' | 'org_admin' | 'super_admin';
 
 export interface Organization {
   _id: string;

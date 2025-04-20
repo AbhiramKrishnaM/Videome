@@ -67,16 +67,37 @@ export const getMeeting = async (req: AuthRequest, res: Response): Promise<void>
       return;
     }
 
-    // Check if user is authorized to view the meeting
-    const isHost = meeting.host._id.toString() === req.user?._id?.toString();
-    const isParticipant = meeting.participants.some(
-      (p) => p.user._id.toString() === req.user?._id.toString(),
-    );
+    // Safe access to host and participants
+    const hostId = meeting.host?._id ? meeting.host._id.toString() : meeting.host?.toString();
+    const userId = req.user?._id?.toString();
 
-    // Allow organization admins to view meetings in their organization
-    const isOrgAdmin =
-      req.user?.role === 'org_admin' &&
-      req.user?.organization?.toString() === meeting.organization._id.toString();
+    // Check if user is authorized to view the meeting
+    const isHost = hostId === userId;
+
+    // Safely check participants
+    const isParticipant = meeting.participants.some((p) => {
+      const participantUser = p.user;
+      // Handle both populated and non-populated cases
+      if (!participantUser) return false;
+
+      const participantId = participantUser._id
+        ? participantUser._id.toString()
+        : participantUser.toString();
+
+      return participantId === userId;
+    });
+
+    // Safely handle organization check for org admins
+    let isOrgAdmin = false;
+    if (req.user?.role === 'org_admin' && req.user?.organization && meeting.organization) {
+      // Handle both populated and non-populated organization
+      const orgId =
+        typeof meeting.organization === 'object' && meeting.organization?._id
+          ? meeting.organization._id.toString()
+          : meeting.organization.toString();
+
+      isOrgAdmin = req.user.organization.toString() === orgId;
+    }
 
     // Super admins can view any meeting
     const isSuperAdmin = req.user?.role === 'super_admin';
@@ -209,10 +230,20 @@ export const updateMeeting = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     // Check if user is the host or admin of the organization
-    const isHost = meeting.host.toString() === req.user?._id.toString();
-    const isOrgAdmin =
-      req.user?.role === 'org_admin' &&
-      req.user?.organization?.toString() === meeting.organization.toString();
+    const isHost = meeting.host.toString() === req.user?._id?.toString();
+
+    // Safely handle organization check for org admins
+    let isOrgAdmin = false;
+    if (req.user?.role === 'org_admin' && req.user?.organization && meeting.organization) {
+      // Handle both populated and non-populated organization
+      const orgId =
+        typeof meeting.organization === 'object' && meeting.organization?._id
+          ? meeting.organization._id.toString()
+          : meeting.organization.toString();
+
+      isOrgAdmin = req.user.organization.toString() === orgId;
+    }
+
     const isSuperAdmin = req.user?.role === 'super_admin';
 
     if (!isHost && !isOrgAdmin && !isSuperAdmin) {

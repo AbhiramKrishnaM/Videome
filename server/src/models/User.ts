@@ -43,7 +43,7 @@ const UserSchema: Schema = new Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'org_admin', 'super_admin'],
+      enum: ['user', 'admin', 'org_admin', 'super_admin'],
       default: 'user',
     },
     organization: {

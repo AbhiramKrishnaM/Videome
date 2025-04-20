@@ -24,6 +24,21 @@ const seedData = async () => {
       // Don't delete all users and orgs, just check if our seed exists
     }
 
+    // Migrate legacy 'admin' roles to 'org_admin'
+    logger.info('Migrating legacy admin roles...');
+    const usersToMigrate = await User.find({ role: 'admin' });
+
+    if (usersToMigrate.length > 0) {
+      for (const user of usersToMigrate) {
+        user.role = 'org_admin';
+        await user.save();
+        logger.info(`Migrated user ${user.email} from 'admin' to 'org_admin'`);
+      }
+      logger.info(`${usersToMigrate.length} users migrated from 'admin' to 'org_admin'`);
+    } else {
+      logger.info('No legacy admin roles to migrate');
+    }
+
     // Create Videome organization if it doesn't exist
     logger.info('Creating Videome organization...');
     let organization = await Organization.findOne({ name: 'Videome' });

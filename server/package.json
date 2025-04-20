@@ -4,14 +4,14 @@
   "description": "Video conference application server",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/src/index.js",
-    "dev": "nodemon src/index.ts",
-    "build": "rimraf dist && tsc",
+    "start": "node -r tsconfig-paths/register dist/src/index.js",
+    "dev": "nodemon",
+    "build": "rimraf dist && tsc && tsc-alias",
     "lint": "eslint . --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest",
     "test:watch": "jest --watch",
-    "seed": "ts-node src/seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register src/seed.ts"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
