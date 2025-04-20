@@ -1,32 +1,28 @@
 import { Router } from 'express';
 import {
-  getAllNotifications,
-  getNotification,
-  createNotification,
-  updateNotification,
+  getUserNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
   deleteNotification,
-  markAsRead,
+  deleteAllReadNotifications,
 } from '../controllers/notification.controller';
 import { protect } from '../middleware/auth';
 
 const router = Router();
 
 // Get all notifications for the current user
-router.get('/', protect, getAllNotifications);
+router.get('/', protect, getUserNotifications);
 
-// Get single notification
-router.get('/:id', protect, getNotification);
+// Mark notification as read
+router.patch('/:id/read', protect, markNotificationAsRead);
 
-// Create notification (typically used by internal systems, not exposed)
-router.post('/', protect, createNotification);
-
-// Update notification
-router.put('/:id', protect, updateNotification);
+// Mark all notifications as read
+router.put('/read-all', protect, markAllNotificationsAsRead);
 
 // Delete notification
 router.delete('/:id', protect, deleteNotification);
 
-// Mark notification as read
-router.patch('/:id/read', protect, markAsRead);
+// Delete all read notifications
+router.delete('/read', protect, deleteAllReadNotifications);
 
 export default router;

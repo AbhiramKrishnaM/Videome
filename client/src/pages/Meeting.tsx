@@ -11,6 +11,7 @@ import * as webrtcService from '@/services/webrtc.service';
 import * as socketService from '@/services/socket.service';
 import { LocalStream, RemoteStream } from '@/services/webrtc.service';
 import { SocketEvents } from '@/services/socket.service';
+import { cn } from '@/lib/utils';
 
 // Define the types we need
 interface MeetingWithUsers {
@@ -24,6 +25,13 @@ interface MeetingWithUsers {
 }
 
 type Socket = any; // Use any for Socket type to avoid importing socket.io types
+
+// Update the remoteStreamsArray parsing
+type RemoteStreamInfo = {
+  userId: string;
+  stream: MediaStream;
+  isScreenShare?: boolean;
+};
 
 export default function Meeting() {
   const { id } = useParams<{ id: string }>();
@@ -278,27 +286,102 @@ export default function Meeting() {
 
   // Toggle screen sharing
   const toggleScreenSharing = useCallback(async () => {
-    if (!localStreamRef.current || peerConnectionsRef.current.size === 0) return;
-
     try {
       if (!isScreenSharing) {
         // Start screen sharing
-        const firstPeerConnection = peerConnectionsRef.current.values().next().value;
         const screenStream = await webrtcService.getScreenShareStream();
+
+        // Handle the case when user cancels the screen sharing dialog
+        if (!screenStream) {
+          console.log('Screen sharing was cancelled');
+          return;
+        }
+
+        // Store the original stream to restore later
+        const originalStream = localStreamRef.current;
+
+        // For each peer connection, replace the video track with screen share
+        for (const [userId, peerConnection] of peerConnectionsRef.current.entries()) {
+          try {
+            // Get the video track from screen share stream
+            const screenVideoTrack = screenStream.getVideoTracks()[0];
+
+            // Find the sender for video in this peer connection
+            const senders = peerConnection.getSenders();
+            const videoSender = senders.find(
+              (sender) => sender.track && sender.track.kind === 'video',
+            );
+
+            if (videoSender && screenVideoTrack) {
+              // Replace the track in the peer connection
+              await videoSender.replaceTrack(screenVideoTrack);
+              console.log(`Replaced video track with screen share for peer: ${userId}`);
+            }
+          } catch (err) {
+            console.error(`Failed to replace track for peer ${userId}:`, err);
+          }
+        }
+
+        // Add listener for when screen sharing stops (user clicks "Stop sharing")
+        screenStream.getVideoTracks()[0].addEventListener('ended', async () => {
+          console.log('Screen sharing stopped by user');
+          await handleStopScreenSharing();
+        });
+
+        // Update refs and state
         localStreamRef.current = screenStream;
         setLocalStream(screenStream);
         setIsScreenSharing(true);
       } else {
         // Stop screen sharing
-        const stream = await webrtcService.getLocalStream();
-        localStreamRef.current = stream;
-        setLocalStream(stream);
-        setIsScreenSharing(false);
+        await handleStopScreenSharing();
       }
     } catch (err) {
       console.error('Error toggling screen share:', err);
     }
   }, [isScreenSharing]);
+
+  // Helper for stopping screen sharing
+  const handleStopScreenSharing = async () => {
+    try {
+      // Get a new camera stream
+      const cameraStream = await webrtcService.getLocalStream();
+
+      // For each peer connection, replace screen share track with camera track
+      for (const [userId, peerConnection] of peerConnectionsRef.current.entries()) {
+        try {
+          // Get the video track from camera stream
+          const cameraVideoTrack = cameraStream.getVideoTracks()[0];
+
+          // Find the sender for video in this peer connection
+          const senders = peerConnection.getSenders();
+          const videoSender = senders.find(
+            (sender) => sender.track && sender.track.kind === 'video',
+          );
+
+          if (videoSender && cameraVideoTrack) {
+            // Replace the track in the peer connection
+            await videoSender.replaceTrack(cameraVideoTrack);
+            console.log(`Replaced screen share with camera for peer: ${userId}`);
+          }
+        } catch (err) {
+          console.error(`Failed to replace track for peer ${userId}:`, err);
+        }
+      }
+
+      // Stop all tracks in the current stream
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+
+      // Update refs and state
+      localStreamRef.current = cameraStream;
+      setLocalStream(cameraStream);
+      setIsScreenSharing(false);
+    } catch (err) {
+      console.error('Error stopping screen share:', err);
+    }
+  };
 
   // End meeting
   const handleEndMeeting = useCallback(() => {
@@ -341,10 +424,24 @@ export default function Meeting() {
   }
 
   // Convert remote streams map to array for rendering
-  const remoteStreamsArray = Array.from(remoteStreams.entries()).map(([userId, stream]) => ({
-    userId,
-    stream,
-  }));
+  const remoteStreamsArray: RemoteStreamInfo[] = Array.from(remoteStreams.entries()).map(
+    ([userId, stream]) => {
+      // Check if this stream is a screen share
+      const isScreenShare = stream
+        .getVideoTracks()
+        .some(
+          (track) =>
+            track.label.toLowerCase().includes('screen') ||
+            track.label.toLowerCase().includes('display'),
+        );
+
+      return {
+        userId,
+        stream,
+        isScreenShare,
+      };
+    },
+  );
 
   return (
     <div className="flex h-screen flex-col bg-background">
@@ -394,9 +491,15 @@ export default function Meeting() {
       {/* Video grid */}
       <div className="flex-1 overflow-hidden p-4">
         <div
-          className={`grid h-full gap-4 ${remoteStreamsArray.length > 0 ? 'md:grid-cols-2' : ''}`}
+          className={`grid h-full gap-4 ${
+            remoteStreamsArray.length > 0
+              ? isScreenSharing || remoteStreamsArray.some((s) => s.isScreenShare)
+                ? 'grid-cols-1 md:grid-cols-2 md:grid-rows-2' // Grid layout for screen share
+                : 'md:grid-cols-2' // Regular grid
+              : ''
+          }`}
         >
-          {/* Local video */}
+          {/* Local video, show first if not screen sharing, else show after remote screen share */}
           <VideoPlayer
             stream={localStream}
             isMuted={true}
@@ -404,12 +507,23 @@ export default function Meeting() {
             username={user?.name || 'You'}
             isVideoEnabled={isVideoEnabled}
             isAudioEnabled={isAudioEnabled}
-            className="h-full"
+            isScreenShare={isScreenSharing}
+            className={cn('h-full', isScreenSharing ? 'md:col-span-2 md:row-span-1' : '')}
           />
 
           {/* Remote videos */}
-          {remoteStreamsArray.map(({ userId, stream }) => (
-            <VideoPlayer key={userId} stream={stream} username="Remote User" className="h-full" />
+          {remoteStreamsArray.map(({ userId, stream, isScreenShare }) => (
+            <VideoPlayer
+              key={userId}
+              stream={stream}
+              username={
+                // Try to find user info from meeting participants
+                meeting.participants?.find((p: any) => p.user && p.user._id === userId)?.user
+                  ?.name || 'Remote User'
+              }
+              isScreenShare={isScreenShare}
+              className={cn('h-full', isScreenShare ? 'md:col-span-2 md:row-span-1' : '')}
+            />
           ))}
         </div>
       </div>

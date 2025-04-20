@@ -2,8 +2,8 @@ import { Router } from 'express';
 import authRoutes from './auth.routes';
 import userRoutes from './user.routes';
 import meetingRoutes from './meeting.routes';
-import organizationRoutes from './organization.routes';
-import notificationRoutes from './notification.routes';
+import organizationRoutes from '@/routes/organization.routes';
+import notificationRoutes from '@/routes/notification.routes';
 
 const router = Router();
 
