@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/auth.store';
 export default function Login() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { login, error, isLoading } = useAuthStore();
+  const { login, error, isLoading, clearError } = useAuthStore();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -19,6 +19,8 @@ export default function Login() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear any previous errors when the user starts typing
+    if (error) clearError();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,7 +34,15 @@ export default function Login() {
       });
       navigate('/');
     } catch (error) {
-      // Error is already handled in the store
+      // Display the error in a toast instead of relying on the store's error state
+      console.error('Login failed:', error);
+      toast({
+        title: 'Login failed',
+        description:
+          error instanceof Error ? error.message : 'Invalid credentials. Please try again.',
+        variant: 'destructive',
+      });
+      // Don't need to do anything else as the error is already handled in the store
     }
   };
 
