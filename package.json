@@ -44,5 +44,9 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "lucide-react": "^0.501.0",
+    "socket.io-client": "^4.8.1"
   }
 }
