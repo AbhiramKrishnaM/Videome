@@ -1,8 +1,12 @@
 import { Route, Routes } from 'react-router-dom';
 import { ThemeProvider } from '@/components/theme-provider';
-import Home from './pages/Home';
-import Layout from './components/layout/Layout';
-import { Toaster } from './components/ui/toaster';
+import { Toaster } from '@/components/ui/toaster';
+import Layout from '@/components/layout/Layout';
+import Home from '@/pages/Home';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import Users from '@/pages/Users';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 function App() {
   return (
@@ -11,6 +15,16 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
+          <Route path="login" element={<Login />} />
+          <Route path="register" element={<Register />} />
+          <Route
+            path="users"
+            element={
+              <ProtectedRoute adminOnly>
+                <Users />
+              </ProtectedRoute>
+            }
+          />
         </Route>
       </Routes>
     </ThemeProvider>
