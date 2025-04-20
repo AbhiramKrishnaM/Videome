@@ -24,27 +24,15 @@ const seedData = async () => {
       // Don't delete all users and orgs, just check if our seed exists
     }
 
-    // Migrate legacy 'admin' roles to 'org_admin'
-    logger.info('Migrating legacy admin roles...');
-    const usersToMigrate = await User.find({ role: 'admin' });
+    // ====================================================
+    // Create Organizations
+    // ====================================================
+    logger.info('Creating organizations...');
 
-    if (usersToMigrate.length > 0) {
-      for (const user of usersToMigrate) {
-        user.role = 'org_admin';
-        await user.save();
-        logger.info(`Migrated user ${user.email} from 'admin' to 'org_admin'`);
-      }
-      logger.info(`${usersToMigrate.length} users migrated from 'admin' to 'org_admin'`);
-    } else {
-      logger.info('No legacy admin roles to migrate');
-    }
-
-    // Create Videome organization if it doesn't exist
-    logger.info('Creating Videome organization...');
-    let organization = await Organization.findOne({ name: 'Videome' });
-
-    if (!organization) {
-      organization = await Organization.create({
+    // Create Videome Organization (Main)
+    let videoMeOrg = await Organization.findOne({ name: 'Videome' });
+    if (!videoMeOrg) {
+      videoMeOrg = await Organization.create({
         name: 'Videome',
         description: 'Video conferencing platform for teams',
         industry: 'Technology',
@@ -56,30 +44,212 @@ const seedData = async () => {
       logger.info('Videome organization already exists');
     }
 
-    // Create org_admin user if it doesn't exist
-    logger.info('Creating org admin user...');
-    const existingAdmin = await User.findOne({
-      email: 'admin@videome.com',
-      organization: organization._id,
+    // Create Acme Corp Organization
+    let acmeOrg = await Organization.findOne({ name: 'Acme Corporation' });
+    if (!acmeOrg) {
+      acmeOrg = await Organization.create({
+        name: 'Acme Corporation',
+        description: 'Innovative product company',
+        industry: 'Manufacturing',
+        size: '51-200',
+        website: 'https://acme.example.com',
+      });
+      logger.info('Acme Corp organization created');
+    } else {
+      logger.info('Acme Corp organization already exists');
+    }
+
+    // Create Tech Innovators Organization
+    let techOrg = await Organization.findOne({ name: 'Tech Innovators' });
+    if (!techOrg) {
+      techOrg = await Organization.create({
+        name: 'Tech Innovators',
+        description: 'Cutting-edge technology solutions',
+        industry: 'Information Technology',
+        size: '11-50',
+        website: 'https://techinnovators.example.com',
+      });
+      logger.info('Tech Innovators organization created');
+    } else {
+      logger.info('Tech Innovators organization already exists');
+    }
+
+    // ====================================================
+    // Create Super Admin User (System-wide access)
+    // ====================================================
+    logger.info('Creating super admin user...');
+    const superAdminExists = await User.findOne({ email: 'superadmin@videome.com' });
+    if (!superAdminExists) {
+      await User.create({
+        name: 'Super Admin',
+        email: 'superadmin@videome.com',
+        password: 'superadmin123',
+        role: 'super_admin',
+      });
+      logger.info('Super admin user created');
+    } else {
+      logger.info('Super admin user already exists');
+    }
+
+    // ====================================================
+    // Create Admin User (Primary admin role)
+    // ====================================================
+    logger.info('Creating admin user...');
+    const adminExists = await User.findOne({ email: 'admin@videome.com', role: 'admin' });
+    if (!adminExists) {
+      await User.create({
+        name: 'Admin User',
+        email: 'admin@videome.com',
+        password: 'admin123',
+        role: 'admin',
+      });
+      logger.info('Admin user created');
+    } else {
+      logger.info('Admin user already exists');
+    }
+
+    // ====================================================
+    // Create Org Admins (One for each organization)
+    // ====================================================
+
+    // Create Videome Org Admin
+    logger.info('Creating Videome org admin...');
+    const videomeOrgAdminExists = await User.findOne({
+      email: 'orgadmin@videome.com',
+      organization: videoMeOrg._id,
     });
 
-    if (!existingAdmin) {
+    if (!videomeOrgAdminExists) {
       await User.create({
-        name: 'Videome Admin',
-        email: 'admin@videome.com',
-        password: 'password123', // This will be hashed by the pre-save hook
+        name: 'Videome Org Admin',
+        email: 'orgadmin@videome.com',
+        password: 'password123',
         role: 'org_admin',
-        organization: organization._id,
+        organization: videoMeOrg._id,
       });
-      logger.info('Org admin user created');
+      logger.info('Videome org admin created');
     } else {
-      logger.info('Org admin user already exists');
+      logger.info('Videome org admin already exists');
+    }
+
+    // Create Acme Org Admin
+    logger.info('Creating Acme org admin...');
+    const acmeOrgAdminExists = await User.findOne({
+      email: 'orgadmin@acme.com',
+      organization: acmeOrg._id,
+    });
+
+    if (!acmeOrgAdminExists) {
+      await User.create({
+        name: 'Acme Org Admin',
+        email: 'orgadmin@acme.com',
+        password: 'password123',
+        role: 'org_admin',
+        organization: acmeOrg._id,
+      });
+      logger.info('Acme org admin created');
+    } else {
+      logger.info('Acme org admin already exists');
+    }
+
+    // Create Tech Innovators Org Admin
+    logger.info('Creating Tech Innovators org admin...');
+    const techOrgAdminExists = await User.findOne({
+      email: 'orgadmin@techinnovators.com',
+      organization: techOrg._id,
+    });
+
+    if (!techOrgAdminExists) {
+      await User.create({
+        name: 'Tech Innovators Org Admin',
+        email: 'orgadmin@techinnovators.com',
+        password: 'password123',
+        role: 'org_admin',
+        organization: techOrg._id,
+      });
+      logger.info('Tech Innovators org admin created');
+    } else {
+      logger.info('Tech Innovators org admin already exists');
+    }
+
+    // ====================================================
+    // Create Regular Users (Several for each organization)
+    // ====================================================
+
+    // Create Videome Regular Users
+    logger.info('Creating regular users for Videome...');
+    const videomeUsers = [
+      { name: 'John Doe', email: 'john@videome.com' },
+      { name: 'Jane Smith', email: 'jane@videome.com' },
+      { name: 'Mike Johnson', email: 'mike@videome.com' },
+    ];
+
+    for (const userData of videomeUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
+      if (!existingUser) {
+        await User.create({
+          name: userData.name,
+          email: userData.email,
+          password: 'password123',
+          role: 'user',
+          organization: videoMeOrg._id,
+        });
+        logger.info(`Created user: ${userData.name}`);
+      } else {
+        logger.info(`User ${userData.email} already exists`);
+      }
+    }
+
+    // Create Acme Regular Users
+    logger.info('Creating regular users for Acme Corp...');
+    const acmeUsers = [
+      { name: 'Robert Brown', email: 'robert@acme.com' },
+      { name: 'Sarah Williams', email: 'sarah@acme.com' },
+    ];
+
+    for (const userData of acmeUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
+      if (!existingUser) {
+        await User.create({
+          name: userData.name,
+          email: userData.email,
+          password: 'password123',
+          role: 'user',
+          organization: acmeOrg._id,
+        });
+        logger.info(`Created user: ${userData.name}`);
+      } else {
+        logger.info(`User ${userData.email} already exists`);
+      }
+    }
+
+    // Create Tech Innovators Regular Users
+    logger.info('Creating regular users for Tech Innovators...');
+    const techUsers = [
+      { name: 'David Miller', email: 'david@techinnovators.com' },
+      { name: 'Emma Davis', email: 'emma@techinnovators.com' },
+    ];
+
+    for (const userData of techUsers) {
+      const existingUser = await User.findOne({ email: userData.email });
+      if (!existingUser) {
+        await User.create({
+          name: userData.name,
+          email: userData.email,
+          password: 'password123',
+          role: 'user',
+          organization: techOrg._id,
+        });
+        logger.info(`Created user: ${userData.name}`);
+      } else {
+        logger.info(`User ${userData.email} already exists`);
+      }
     }
 
     logger.info('Seed completed successfully');
   } catch (error) {
     logger.error('Error seeding data:', error);
-    process.exit(1);
+    throw error; // Re-throw to handle differently when called from index.ts
   }
 };
 
@@ -100,5 +270,10 @@ const main = async () => {
   }
 };
 
-// Run the seed script
-main();
+// Run the seed script if called directly
+if (require.main === module) {
+  main();
+}
+
+// Export for use in index.ts
+export { seedData, connectDB };

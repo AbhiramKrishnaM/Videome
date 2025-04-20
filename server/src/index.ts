@@ -4,7 +4,6 @@ import app from './app';
 import { initializeSocketIO } from './webrtc/socket';
 import { connectDB } from './config/database';
 import { createServer } from 'http';
-import { seedAdminUser } from './utils/seedDb';
 
 dotenv.config();
 
@@ -26,25 +25,11 @@ const startServer = async () => {
     // Check if we should seed the database
     if (process.env.SEED_DB === 'true') {
       logger.info('Seeding database with initial data...');
-      // We need a separate instance of seedAdminUser that doesn't close the connection
+      // Import and run seed function instead of inline code
       try {
-        // Check if admin user already exists
-        const User = require('./models/User').default;
-        const adminExists = await User.findOne({ email: 'admin@example.com' });
-
-        if (adminExists) {
-          logger.info('Admin user already exists - no need to seed');
-        } else {
-          // Create admin user
-          const adminUser = await User.create({
-            name: 'Admin User',
-            email: 'admin@example.com',
-            password: 'admin123',
-            role: 'admin',
-          });
-
-          logger.info(`Admin user created: ${adminUser.name} (${adminUser.email})`);
-        }
+        const { seedData } = require('./seed');
+        await seedData();
+        logger.info('Database seeded successfully');
       } catch (error) {
         logger.error(`Error seeding database: ${error}`);
       }
