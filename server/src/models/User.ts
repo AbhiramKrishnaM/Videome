@@ -9,6 +9,11 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: string;
+  organization?: mongoose.Types.ObjectId;
+  profileImage?: string;
+  position?: string;
+  isActive: boolean;
+  lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
   matchPassword: (enteredPassword: string) => Promise<boolean>;
@@ -38,8 +43,25 @@ const UserSchema: Schema = new Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
+      enum: ['user', 'org_admin', 'super_admin'],
       default: 'user',
+    },
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+    },
+    profileImage: {
+      type: String,
+    },
+    position: {
+      type: String,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    lastLogin: {
+      type: Date,
     },
   },
   { timestamps: true },
@@ -68,6 +90,10 @@ UserSchema.methods.getSignedJwtToken = function (): string {
 UserSchema.methods.matchPassword = async function (enteredPassword: string): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
+
+// Index for faster lookups
+UserSchema.index({ email: 1 });
+UserSchema.index({ organization: 1 });
 
 const User: Model<IUser> = mongoose.model<IUser>('User', UserSchema);
 

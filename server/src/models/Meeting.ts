@@ -1,11 +1,22 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 
+// Define invitation status enum
+export enum InvitationStatus {
+  PENDING = 'pending',
+  ACCEPTED = 'accepted',
+  DECLINED = 'declined',
+}
+
 // Meeting participant interface
 interface IParticipant {
   user: mongoose.Types.ObjectId;
   joinedAt: Date;
   leftAt?: Date;
+  status: InvitationStatus;
+  invitedBy?: mongoose.Types.ObjectId;
+  notificationSent: boolean;
+  notifiedAt?: Date;
 }
 
 // Meeting interface
@@ -14,6 +25,7 @@ export interface IMeeting extends Document {
   description?: string;
   meetingCode: string;
   host: mongoose.Types.ObjectId;
+  organization: mongoose.Types.ObjectId;
   participants: IParticipant[];
   startTime: Date;
   endTime?: Date;
@@ -49,6 +61,11 @@ const MeetingSchema: Schema = new Schema(
       ref: 'User',
       required: true,
     },
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Organization',
+      required: true,
+    },
     participants: [
       {
         user: {
@@ -57,9 +74,24 @@ const MeetingSchema: Schema = new Schema(
         },
         joinedAt: {
           type: Date,
-          default: Date.now,
         },
         leftAt: {
+          type: Date,
+        },
+        status: {
+          type: String,
+          enum: Object.values(InvitationStatus),
+          default: InvitationStatus.PENDING,
+        },
+        invitedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        notificationSent: {
+          type: Boolean,
+          default: false,
+        },
+        notifiedAt: {
           type: Date,
         },
       },
@@ -95,7 +127,9 @@ const MeetingSchema: Schema = new Schema(
 
 // Indexes
 MeetingSchema.index({ host: 1 });
+MeetingSchema.index({ organization: 1 });
 MeetingSchema.index({ startTime: 1 });
+MeetingSchema.index({ 'participants.user': 1 });
 
 const Meeting: Model<IMeeting> = mongoose.model<IMeeting>('Meeting', MeetingSchema);
 
