@@ -1,6 +1,6 @@
 import api from './api';
 import { Meeting, CreateMeetingData, JoinMeetingData } from '@/types/meeting';
-import { ApiResponse } from '@/types/user';
+import { ApiResponse, User } from '@/types/user';
 
 export const getMeetings = async (): Promise<Meeting[]> => {
   try {
@@ -57,6 +57,20 @@ export const joinMeeting = async (data: JoinMeetingData): Promise<Meeting> => {
     return response.data.data;
   } catch (error) {
     console.error('Failed to join meeting:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get organization members for meeting invites
+ * Does not include the current user
+ */
+export const getOrganizationMembers = async (): Promise<User[]> => {
+  try {
+    const response = await api.get<ApiResponse<User[]>>('/meetings/organization-members');
+    return response.data.data;
+  } catch (error) {
+    console.error('Failed to fetch organization members:', error);
     throw error;
   }
 };

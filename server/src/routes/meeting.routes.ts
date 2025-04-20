@@ -5,6 +5,8 @@ import {
   updateMeeting,
   deleteMeeting,
   joinMeeting,
+  getOrganizationMembers,
+  declineMeeting,
 } from '@/controllers/meeting.controller';
 import { protect } from '@/middleware/auth';
 import { Router } from 'express';
@@ -21,6 +23,9 @@ router.use(protect);
 // Get all meetings for the user
 router.get('/', getMeetings);
 
+// Get organization members for meeting invites
+router.get('/organization-members', getOrganizationMembers);
+
 // Get single meeting
 router.get('/:id', getMeeting);
 
@@ -32,5 +37,8 @@ router.put('/:id', updateMeeting);
 
 // Delete meeting
 router.delete('/:id', deleteMeeting);
+
+// Decline meeting invitation
+router.post('/:id/decline', declineMeeting);
 
 export default router;

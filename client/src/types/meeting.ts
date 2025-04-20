@@ -18,6 +18,7 @@ export interface Meeting {
 export interface CreateMeetingData {
   title: string;
   description?: string;
+  invitedUsers?: string[]; // Array of user IDs to invite
 }
 
 export interface JoinMeetingData {

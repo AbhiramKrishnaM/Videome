@@ -21,4 +21,7 @@ export default defineConfig({
       '@assets': path.resolve(__dirname, './src/assets'),
     },
   },
+  optimizeDeps: {
+    include: ['@radix-ui/react-checkbox', '@radix-ui/react-scroll-area'],
+  },
 });
