@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useUsersStore } from '@/store/users.store';
+import { useAuthStore } from '@/store/auth.store';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@/types/user';
 import { Badge } from '@/components/ui/badge';
 
 export default function Users() {
   const { users, fetchUsers, deleteUser, isLoading, error } = useUsersStore();
+  const { user: currentUser } = useAuthStore();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -15,12 +17,22 @@ export default function Users() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const filteredUsers = users.filter(
-    (user) =>
+  // Filter users based on search term and organization (for org_admin)
+  const filteredUsers = users.filter((user) => {
+    // Basic search filter
+    const matchesSearch =
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.organization?.name || '').toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+      (user.organization?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Organization filter for org_admin
+    const organizationFilter =
+      currentUser?.role === 'org_admin'
+        ? user.organization?._id === currentUser.organization
+        : true;
+
+    return matchesSearch && organizationFilter;
+  });
 
   const handleDelete = async (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
@@ -34,6 +46,21 @@ export default function Users() {
         // Error is handled in the store
       }
     }
+  };
+
+  // Determine if current user can delete the target user
+  const canDeleteUser = (targetUser: User) => {
+    if (currentUser?.role === 'super_admin') {
+      return true; // Super admin can delete any user
+    } else if (currentUser?.role === 'org_admin') {
+      // Org admin can only delete users in their org and with lower roles
+      return (
+        targetUser.organization?._id === currentUser.organization &&
+        targetUser.role !== 'super_admin' &&
+        targetUser.role !== 'org_admin'
+      );
+    }
+    return false;
   };
 
   const formatDate = (dateString: string) => {
@@ -57,7 +84,11 @@ export default function Users() {
     <div className="container py-8">
       <div className="mb-8 space-y-2">
         <h1 className="text-3xl font-bold">Users Management</h1>
-        <p className="text-muted-foreground">View and manage user accounts</p>
+        <p className="text-muted-foreground">
+          {currentUser?.role === 'org_admin'
+            ? 'View and manage users in your organization'
+            : 'View and manage all user accounts'}
+        </p>
       </div>
 
       {error && (
@@ -130,6 +161,7 @@ export default function Users() {
                           variant="outline"
                           size="sm"
                           onClick={() => alert('Edit user: ' + user._id)}
+                          disabled={!canDeleteUser(user)}
                         >
                           Edit
                         </Button>
@@ -137,6 +169,7 @@ export default function Users() {
                           variant="destructive"
                           size="sm"
                           onClick={() => handleDelete(user._id)}
+                          disabled={!canDeleteUser(user)}
                         >
                           Delete
                         </Button>

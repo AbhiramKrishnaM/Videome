@@ -6,10 +6,14 @@ import {
   updateOrganization,
   deleteOrganization,
   getOrganizationUsers,
+  getPublicOrganizations,
 } from '../controllers/organization.controller';
 import { protect, authorize } from '../middleware/auth';
 
 const router = Router();
+
+// Get all organizations - public access
+router.get('/public', getPublicOrganizations);
 
 // Get all organizations - super admin only
 router.get('/', protect, authorize('super_admin'), getOrganizations);

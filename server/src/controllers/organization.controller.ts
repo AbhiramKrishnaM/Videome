@@ -225,3 +225,26 @@ export const getOrganizationUsers = async (req: AuthRequest, res: Response): Pro
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+/**
+ * @desc    Get all organizations (public access)
+ * @route   GET /api/v1/organizations/public
+ * @access  Public
+ */
+export const getPublicOrganizations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Get all active organizations
+    const organizations = await Organization.find()
+      .select('name description industry size website logo') // Only return non-sensitive info
+      .sort({ name: 1 });
+
+    res.status(200).json({
+      success: true,
+      count: organizations.length,
+      data: organizations,
+    });
+  } catch (error) {
+    logger.error(`Error in getPublicOrganizations: ${error}`);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
